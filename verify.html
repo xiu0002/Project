@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>永檔鏈 DocChain - 驗證文件</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/web3@1.10.0/dist/web3.min.js"></script>
+    <script src="https://unpkg.com/feather-icons"></script>
+
+    <style>
+        /* 🔥 關鍵修復：強制顯示滾動條，防止頁面切換時導覽列跳動 */
+        html {
+            overflow-y: scroll;
+        }
+
+        body {
+            font-family: "Inter", "Helvetica Neue", sans-serif;
+            background-color: #f3f4f6;
+            background-image: radial-gradient(at 0% 0%, hsla(253,16%,7%,1) 0, transparent 50%), radial-gradient(at 50% 0%, hsla(225,39%,30%,1) 0, transparent 50%), radial-gradient(at 100% 0%, hsla(339,49%,30%,1) 0, transparent 50%);
+            background-attachment: fixed;
+            color: #1e293b;
+            min-height: 100vh;
+        }
+
+            body::before {
+                content: "";
+                position: fixed;
+                inset: 0;
+                background: linear-gradient(135deg, #eef2ff 0%, #f8fafc 100%);
+                z-index: -1;
+                opacity: 0.85;
+            }
+
+        /* Header (完全一致) */
+        header {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            z-index: 50;
+            backdrop-filter: blur(16px);
+            background: rgba(255, 255, 255, 0.6);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.5);
+            transition: all 0.3s ease;
+        }
+
+            header.scrolled {
+                background: rgba(255, 255, 255, 0.85);
+                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+            }
+
+        /* 毛玻璃卡片 */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.05);
+            border-radius: 1.5rem;
+        }
+
+        /* Drop Zone */
+        .drop-zone {
+            background: rgba(255, 255, 255, 0.5);
+            border: 2px dashed #cbd5e1;
+            border-radius: 1rem;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+            .drop-zone input[type="file"] {
+                position: absolute;
+                inset: 0;
+                width: 100%;
+                height: 100%;
+                opacity: 0;
+                cursor: pointer;
+                z-index: 10;
+            }
+
+            .drop-zone:hover, .drop-zone.dragover {
+                border-color: #6366f1;
+                background: rgba(224, 231, 255, 0.6);
+                transform: scale(1.01);
+                box-shadow: 0 10px 25px rgba(99, 102, 241, 0.1);
+            }
+
+        /* 按鈕 */
+        .primary-btn {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            color: white;
+            font-weight: 600;
+            padding: 1rem;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+            transition: all 0.3s ease;
+            width: 100%;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+            .primary-btn:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 8px 25px rgba(99, 102, 241, 0.4);
+            }
+
+        /* 深色按鈕 (下載證書用) */
+        .dark-btn {
+            background: rgba(30, 41, 59, 0.9);
+            color: white;
+            font-weight: 600;
+            padding: 0.8rem 1.5rem;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 15px rgba(30, 41, 59, 0.2);
+            transition: all 0.3s ease;
+            width: 100%;
+            text-align: center;
+        }
+
+            .dark-btn:hover {
+                background: #0f172a;
+                transform: translateY(-2px);
+            }
+
+        /* Timeline 樣式 */
+        .timeline {
+            position: relative;
+            padding-left: 2rem;
+            margin-top: 1rem;
+        }
+
+            .timeline::before {
+                content: '';
+                position: absolute;
+                left: 0.9rem;
+                top: 0;
+                bottom: 0;
+                width: 2px;
+                background: linear-gradient(to bottom, #e2e8f0 0%, #cbd5e1 100%);
+            }
+
+        .timeline-item {
+            position: relative;
+            margin-bottom: 2rem;
+        }
+
+        .timeline-dot {
+            position: absolute;
+            left: -2rem;
+            top: 0.25rem;
+            width: 2rem;
+            height: 2rem;
+            background: #fff;
+            border: 2px solid #6366f1;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            color: #6366f1;
+            z-index: 10;
+        }
+
+        .timeline-content {
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            border-radius: 1rem;
+            padding: 1.25rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02);
+        }
+
+        /* Loader */
+        .loader {
+            border: 3px solid #e2e8f0;
+            border-top: 3px solid #6366f1;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <div class="max-w-7xl mx-auto px-6 lg:px-8 py-4 flex justify-between items-center">
+            <a href="home.html" class="flex items-center gap-2 group">
+                <div class="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white shadow-lg group-hover:scale-110 transition-transform">
+                    <i data-feather="box" class="w-5 h-5"></i>
+                </div>
+                <span class="text-xl font-bold text-slate-800 tracking-tight group-hover:text-indigo-600 transition-colors">永檔鏈 DocChain</span>
+            </a>
+
+            <nav class="flex items-center space-x-8">
+                <div class="hidden md:flex space-x-8 text-sm font-medium text-slate-600">
+                    <a href="home.html" class="hover:text-indigo-600 transition-colors">首頁</a>
+                    <a href="upload.html" class="hover:text-indigo-600 transition-colors">上傳</a>
+                    <a href="verify.html" class="hover:text-indigo-600 transition-colors">驗證</a>
+                    <a href="files.html" class="text-indigo-600 font-semibold">檔案管理</a>
+                </div>
+
+                <div class="relative">
+                    <button id="connectWalletBtn" class="flex items-center gap-2 bg-white/80 hover:bg-white border border-slate-200 text-slate-700 px-4 py-2 rounded-full text-sm font-medium shadow-sm hover:shadow transition-all backdrop-blur-sm">
+                        <span id="walletText">🔐 連接錢包</span>
+                    </button>
+                    <div id="logoutMenu" class="hidden absolute right-0 mt-2 w-40 bg-white/90 backdrop-blur-xl shadow-xl rounded-2xl border border-slate-100 overflow-hidden transform origin-top-right transition-all">
+                        <button id="logoutBtn" class="w-full text-left px-4 py-3 text-sm text-slate-600 hover:bg-slate-50 hover:text-red-500 transition-colors flex items-center gap-2">
+                            <i data-feather="log-out" class="w-4 h-4"></i> 登出
+                        </button>
+                    </div>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <main class="pt-32 pb-20 px-4">
+        <div class="max-w-4xl mx-auto glass-card p-8 md:p-10 fade-up">
+
+            <div class="text-center mb-8">
+                <h1 class="text-2xl md:text-3xl font-bold text-slate-800 mb-2">🔍 驗證文件存證</h1>
+                <p class="text-slate-500 text-sm md:text-base">
+                    上傳文件以驗證區塊鏈存證紀錄，並查看完整簽署歷程。
+                </p>
+            </div>
+
+            <div id="dropZone" class="drop-zone p-8 text-center cursor-pointer mb-8 flex flex-col items-center justify-center min-h-[180px]">
+                <input type="file" id="verifyFileInput" />
+                <div class="w-14 h-14 bg-indigo-50 rounded-full flex items-center justify-center mb-4 text-indigo-500 pointer-events-none transition-colors group-hover:bg-indigo-100">
+                    <i data-feather="search" class="w-7 h-7"></i>
+                </div>
+                <p class="text-slate-700 font-medium mb-1 pointer-events-none text-lg">拖曳或點擊上傳文件</p>
+                <p id="fileNameLabel" class="text-slate-400 text-sm pointer-events-none">系統將計算文件指紋進行比對</p>
+            </div>
+
+            <button id="verifyBtn" class="primary-btn text-lg">
+                🔍 開始驗證
+            </button>
+
+            <div id="loading" class="mt-8 text-center hidden">
+                <div class="loader"></div>
+                <p class="mt-4 text-slate-500 font-medium animate-pulse">正在讀取區塊鏈資料，請稍候...</p>
+            </div>
+
+            <div id="resultSection" class="hidden mt-12 pt-8 border-t border-slate-200/60">
+                <div class="grid md:grid-cols-12 gap-8 md:gap-12">
+
+                    <div class="md:col-span-4">
+                        <div class="sticky top-24 space-y-4">
+                            <h3 class="text-lg font-bold text-slate-800 flex items-center">
+                                <i data-feather="check-circle" class="w-5 h-5 mr-2 text-emerald-500"></i> 驗證狀態
+                            </h3>
+                            <div id="result" class="p-5 rounded-xl border border-emerald-100 bg-emerald-50/80 text-emerald-800 text-sm md:text-base backdrop-blur-sm shadow-sm leading-relaxed break-all">
+                            </div>
+                            <button id="downloadCertBtn" class="dark-btn flex justify-center items-center gap-2 w-full">
+                                <i data-feather="download" class="w-4 h-4"></i> 下載驗證證書 (PDF)
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="md:col-span-8 border-l border-slate-200/50 pl-8 md:pl-12">
+                        <h3 class="text-lg font-bold text-slate-800 mb-6 flex items-center">
+                            <i data-feather="git-commit" class="w-5 h-5 mr-2 text-indigo-500"></i> 簽署歷程
+                        </h3>
+                        <div id="chainNodes" class="timeline">
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <footer class="text-center text-slate-400 text-sm py-8">
+        © 2025 永檔鏈 DocChain · Powered by IPFS & Ethereum
+    </footer>
+
+    <script src="auth.js"></script>
+    <script src="verify.js"></script>
+    <script>
+        feather.replace();
+
+        // Header 滾動監聽 (與 Upload 頁面一致)
+        window.addEventListener("scroll", () => {
+            const header = document.querySelector("header");
+            if (window.scrollY > 20) header.classList.add("scrolled");
+            else header.classList.remove("scrolled");
+        });
+
+        // 拖曳視覺效果
+        const dropZone = document.getElementById("dropZone");
+        if (dropZone) {
+            dropZone.addEventListener("dragover", (e) => {
+                e.preventDefault(); dropZone.classList.add("dragover");
+            });
+            dropZone.addEventListener("dragleave", () => dropZone.classList.remove("dragover"));
+            dropZone.addEventListener("drop", (e) => {
+                e.preventDefault(); dropZone.classList.remove("dragover");
+                const fileInput = document.getElementById("verifyFileInput");
+                if (e.dataTransfer.files.length > 0) {
+                    fileInput.files = e.dataTransfer.files;
+                    const event = new Event('change');
+                    fileInput.dispatchEvent(event);
+                }
+            });
+        }
+    </script>
+</body>
+</html>

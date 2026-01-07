@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>永檔鏈 DocChain - 區塊鏈存證專家</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" />
+    <link href="https://unpkg.com/aos@2.3.4/dist/aos.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/web3@1.10.0/dist/web3.min.js"></script>
+    <script src="https://unpkg.com/feather-icons"></script>
+
+    <style>
+        body {
+            font-family: "Inter", "Helvetica Neue", sans-serif;
+            background-color: #f3f4f6;
+            /* React Bits 風格流動背景 */
+            background-image: radial-gradient(at 0% 0%, hsla(253,16%,7%,1) 0, transparent 50%), radial-gradient(at 50% 0%, hsla(225,39%,30%,1) 0, transparent 50%), radial-gradient(at 100% 0%, hsla(339,49%,30%,1) 0, transparent 50%);
+            background-attachment: fixed;
+            color: #1e293b;
+            overflow-x: hidden;
+            min-height: 100vh;
+            position: relative;
+        }
+
+            /* 亮色覆蓋層 */
+            body::before {
+                content: "";
+                position: fixed;
+                inset: 0;
+                background: linear-gradient(135deg, #eef2ff 0%, #f8fafc 100%);
+                z-index: -1;
+                opacity: 0.85;
+            }
+
+        /* ===== 導覽列 (固定定位) ===== */
+        header {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            z-index: 50;
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            background: rgba(255, 255, 255, 0.6);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.5);
+            transition: all 0.3s ease;
+        }
+
+            header.scrolled {
+                background: rgba(255, 255, 255, 0.85);
+                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+            }
+
+        /* ===== 毛玻璃卡片 ===== */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.65);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02), 0 10px 15px -3px rgba(0, 0, 0, 0.02), inset 0 0 20px rgba(255, 255, 255, 0.5);
+            border-radius: 1.5rem;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+            .glass-card:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 15px 30px rgba(0, 0, 0, 0.05);
+                border-color: rgba(255, 255, 255, 1);
+            }
+
+        /* ===== 按鈕樣式組 ===== */
+        /* 1. 主要按鈕 (漸層) */
+        .primary-btn {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            color: white;
+            font-weight: 500;
+            padding: 0.9rem 2.4rem;
+            border-radius: 9999px;
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            border: 1px solid transparent; /* 佔位用，對齊次要按鈕 */
+        }
+
+            .primary-btn:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 8px 25px rgba(99, 102, 241, 0.4);
+            }
+
+            /* 光掃特效 */
+            .primary-btn::after {
+                content: "";
+                position: absolute;
+                top: 0;
+                left: -100%;
+                width: 100%;
+                height: 100%;
+                background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+                transition: 0.5s;
+            }
+
+            .primary-btn:hover::after {
+                left: 100%;
+            }
+
+        /* 2. 次要按鈕 (毛玻璃白底) - 修改後 */
+        .secondary-btn {
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(4px);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            color: #475569; /* Slate 600 */
+            font-weight: 600;
+            padding: 0.9rem 2.4rem;
+            border-radius: 9999px;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+
+            .secondary-btn:hover {
+                background: #ffffff;
+                color: #1e293b; /* Slate 800 */
+                transform: translateY(-2px);
+                box-shadow: 0 10px 20px rgba(0, 0, 0, 0.08);
+                border-color: #cbd5e1;
+            }
+
+        /* ===== 主視覺 ===== */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding-top: 80px; /* 避開 Header */
+        }
+
+            .hero h1 {
+                font-size: 4rem;
+                font-weight: 800;
+                line-height: 1.1;
+                background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                margin-bottom: 1.5rem;
+                letter-spacing: -0.02em;
+            }
+
+            .hero p {
+                max-width: 650px;
+                font-size: 1.25rem;
+                color: #64748b;
+                line-height: 1.7;
+                margin-bottom: 2.5rem;
+            }
+
+        footer {
+            background: rgba(255, 255, 255, 0.4);
+            border-top: 1px solid rgba(255, 255, 255, 0.3);
+            backdrop-filter: blur(5px);
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <div class="max-w-7xl mx-auto px-6 lg:px-8 py-4 flex justify-between items-center">
+            <a href="home.html" class="flex items-center gap-2 group">
+                <div class="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white shadow-lg group-hover:scale-110 transition-transform">
+                    <i data-feather="box" class="w-5 h-5"></i>
+                </div>
+                <span class="text-xl font-bold text-slate-800 tracking-tight group-hover:text-indigo-600 transition-colors">永檔鏈 DocChain</span>
+            </a>
+
+            <nav class="flex items-center space-x-8">
+                <div class="hidden md:flex space-x-8 text-sm font-medium text-slate-600">
+                    <a href="home.html" class="text-indigo-600 font-semibold">首頁</a>
+                    <a href="upload.html" class="hover:text-indigo-600 transition-colors">上傳</a>
+                    <a href="verify.html" class="hover:text-indigo-600 transition-colors">驗證</a>
+                    <a href="files.html" class="hover:text-indigo-600 transition-colors">檔案管理</a>
+                </div>
+
+                <div class="relative">
+                    <button id="connectWalletBtn"
+                            class="flex items-center gap-2 bg-white/80 hover:bg-white border border-slate-200 text-slate-700 px-4 py-2 rounded-full text-sm font-medium shadow-sm hover:shadow transition-all backdrop-blur-sm">
+                        <span id="walletText">🔐 連接錢包</span>
+                    </button>
+
+                    <div id="logoutMenu"
+                         class="hidden absolute right-0 mt-2 w-40 bg-white/90 backdrop-blur-xl shadow-xl rounded-2xl border border-slate-100 overflow-hidden transform origin-top-right transition-all">
+                        <button id="logoutBtn"
+                                class="w-full text-left px-4 py-3 text-sm text-slate-600 hover:bg-slate-50 hover:text-red-500 transition-colors flex items-center gap-2">
+                            <i data-feather="log-out" class="w-4 h-4"></i> 登出
+                        </button>
+                    </div>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <section class="hero px-6">
+        <div data-aos="fade-up" data-aos-duration="1000">
+            <h1>守護文件<br>每一個真實時刻</h1>
+            <p>
+                結合區塊鏈與 IPFS 分散式儲存，<br>
+                為您的合約、證書與創作建立永久且不可篡改的數位指紋。
+            </p>
+
+            <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                <a href="upload.html" class="primary-btn">
+                    <i data-feather="upload-cloud" class="w-4 h-4"></i> 立即存證
+                </a>
+                <a href="verify.html" class="secondary-btn">
+                    <i data-feather="search" class="w-4 h-4"></i> 驗證文件
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <section class="py-24 px-6 md:px-20">
+        <div class="max-w-6xl mx-auto">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl font-bold text-slate-800 mb-4" data-aos="fade-up">為什麼選擇 DocChain？</h2>
+                <p class="text-slate-500 max-w-2xl mx-auto" data-aos="fade-up" data-aos-delay="100">
+                    我們提供最先進的去中心化技術，將信任程式碼化，讓驗證變得簡單而絕對。
+                </p>
+            </div>
+
+            <div class="grid md:grid-cols-3 gap-8">
+                <div class="glass-card p-8 text-center" data-aos="fade-up" data-aos-delay="200">
+                    <div class="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center mx-auto mb-6 text-blue-600">
+                        <i data-feather="shield" class="w-7 h-7"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-slate-800 mb-3">不可篡改</h3>
+                    <p class="text-slate-500 leading-relaxed">
+                        一旦寫入區塊鏈，資料將永久鎖定。任何改動都會導致雜湊值改變，確保文件原始性。
+                    </p>
+                </div>
+
+                <div class="glass-card p-8 text-center" data-aos="fade-up" data-aos-delay="300">
+                    <div class="w-14 h-14 bg-purple-50 rounded-2xl flex items-center justify-center mx-auto mb-6 text-purple-600">
+                        <i data-feather="share-2" class="w-7 h-7"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-slate-800 mb-3">分散式儲存</h3>
+                    <p class="text-slate-500 leading-relaxed">
+                        透過 IPFS 技術，文件不再依賴單一伺服器。即使主機故障，網路中仍有備份可供檢索。
+                    </p>
+                </div>
+
+                <div class="glass-card p-8 text-center" data-aos="fade-up" data-aos-delay="400">
+                    <div class="w-14 h-14 bg-indigo-50 rounded-2xl flex items-center justify-center mx-auto mb-6 text-indigo-600">
+                        <i data-feather="check-circle" class="w-7 h-7"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-slate-800 mb-3">快速驗證</h3>
+                    <p class="text-slate-500 leading-relaxed">
+                        無需第三方機構介入，只需拖曳文件，即可在秒級內驗證簽署者與時間戳記。
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="py-20 text-center">
+        <div class="glass-card max-w-4xl mx-auto p-12 bg-gradient-to-r from-indigo-500/10 to-purple-500/10 border-indigo-100" data-aos="zoom-in">
+            <h2 class="text-3xl font-bold text-slate-800 mb-4">準備好開始了嗎？</h2>
+            <p class="text-slate-600 mb-8">加入去中心化存證的行列，為您的重要資產加上一把數位鎖。</p>
+            <a href="upload.html" class="primary-btn shadow-xl shadow-indigo-500/20">
+                立即開始使用
+            </a>
+        </div>
+    </section>
+
+    <footer class="text-center py-8 text-sm text-slate-500">
+        <div class="mb-2 flex justify-center gap-4">
+            <span class="flex items-center gap-1"><i data-feather="box" class="w-4 h-4"></i> IPFS</span>
+            <span class="flex items-center gap-1"><i data-feather="cpu" class="w-4 h-4"></i> Ethereum</span>
+        </div>
+        © 2025 永檔鏈 DocChain. All rights reserved.
+    </footer>
+
+    <script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>
+    <script src="auth.js"></script>
+    <script>
+        // 初始化 Icons
+        feather.replace();
+
+        // 初始化動畫庫
+        AOS.init({
+            duration: 800,
+            once: true,
+            offset: 100
+        });
+
+        // Header 滾動監聽
+        window.addEventListener("scroll", () => {
+            const header = document.querySelector("header");
+            if (window.scrollY > 20) header.classList.add("scrolled");
+            else header.classList.remove("scrolled");
+        });
+    </script>
+</body>
+</html>
